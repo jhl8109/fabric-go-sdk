@@ -2,7 +2,7 @@
 Hyperledger Fabric 2.x 기반
 ## 순서
 ### 설정
-`GOPATH` = `home/jeho/go`
+set `GOPATH`
 
 ```
 cd $GOPATH/src && git clone https://github.com/sxguan/fabric-go-sdk.git

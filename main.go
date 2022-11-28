@@ -16,7 +16,7 @@ var App sdkInit.Application
 
 func main() {
 	// init orgs information
-
+	GOPATH := os.Getenv("GOPATH")
 	orgs := []*sdkInit.OrgInfo{
 		{
 			OrgAdminUser:  "Admin",
@@ -24,20 +24,20 @@ func main() {
 			OrgMspId:      "Org1MSP",
 			OrgUser:       "User1",
 			OrgPeerNum:    2,
-			OrgAnchorFile: "/home/jeho/go/src/fabric-go-sdk/fixtures/channel-artifacts/Org1MSPanchors.tx",
+			OrgAnchorFile: fmt.Sprintf("%s/src/fabric-go-sdk/fixtures/channel-artifacts/Org1MSPanchors.tx", GOPATH),
 		},
 	}
 
 	// init sdk env info
 	info := sdkInit.SdkEnvInfo{
 		ChannelID:        "mychannel",
-		ChannelConfig:    "/home/jeho/go/src/fabric-go-sdk/fixtures/channel-artifacts/channel.tx",
+		ChannelConfig:    fmt.Sprintf("%s/src/fabric-go-sdk/fixtures/channel-artifacts/channel.tx", GOPATH),
 		Orgs:             orgs,
 		OrdererAdminUser: "Admin",
 		OrdererOrgName:   "OrdererOrg",
 		OrdererEndpoint:  "orderer.example.com",
 		ChaincodeID:      cc_name,
-		ChaincodePath:    "/home/jeho/go/src/fabric-go-sdk/chaincode/",
+		ChaincodePath:    fmt.Sprintf("%s/src/fabric-go-sdk/chaincode/", GOPATH),
 		ChaincodeVersion: cc_version,
 	}
 
