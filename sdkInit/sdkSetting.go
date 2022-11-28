@@ -1,4 +1,3 @@
-
 package sdkInit
 
 import (
@@ -27,7 +26,7 @@ func Setup(configFile string, info *SdkEnvInfo) (*fabsdk.FabricSDK, error) {
 		return nil, err
 	}
 
-	// 为组织获得Client句柄和Context信息
+	// Obtain Client handle and Context information for the organization
 	for _, org := range info.Orgs {
 		org.orgMspClient, err = mspclient.New(sdk.Context(), mspclient.WithOrg(org.OrgName))
 		if err != nil {
@@ -39,24 +38,24 @@ func Setup(configFile string, info *SdkEnvInfo) (*fabsdk.FabricSDK, error) {
 		// New returns a resource management client instance.
 		resMgmtClient, err := resmgmt.New(orgContext)
 		if err != nil {
-			return nil, fmt.Errorf("根据指定的资源管理客户端Context创建通道管理客户端失败: %v", err)
+			return nil, fmt.Errorf("Failed to create a channel management client according to the specified resource management client Context: %v", err)
 		}
 		org.OrgResMgmt = resMgmtClient
 	}
 
-	// 为Orderer获得Context信息
+	// Get Context information for Orderer
 	ordererClientContext := sdk.Context(fabsdk.WithUser(info.OrdererAdminUser), fabsdk.WithOrg(info.OrdererOrgName))
 	info.OrdererClientContext = &ordererClientContext
 	return sdk, nil
 }
 
 func CreateAndJoinChannel(info *SdkEnvInfo) error {
-	fmt.Println(">> 开始创建通道......")
+	fmt.Println(">> start creating channel...")
 	if len(info.Orgs) == 0 {
-		return fmt.Errorf("通道组织不能为空，请提供组织信息")
+		return fmt.Errorf("Channel organization cannot be empty, please provide organization information")
 	}
 
-	// 获得所有组织的签名信息
+	// Get the signature information of all organizations
 	signIds := []msp.SigningIdentity{}
 	for _, org := range info.Orgs {
 		// Get signing identity that is used to sign create channel request
@@ -67,22 +66,22 @@ func CreateAndJoinChannel(info *SdkEnvInfo) error {
 		signIds = append(signIds, orgSignId)
 	}
 
-	// 创建通道
+	// create channel
 	if err := createChannel(signIds, info); err != nil {
 		return fmt.Errorf("Create channel error: %v", err)
 	}
 
-	fmt.Println(">> 创建通道成功")
+	fmt.Println(">> channel created successfully")
 
-	fmt.Println(">> 加入通道......")
+	fmt.Println(" >> Join channel...")
 	for _, org := range info.Orgs {
-		// 加入通道
+		// Join the channel
 		// Org peers join channel
 		if err := org.OrgResMgmt.JoinChannel(info.ChannelID, resmgmt.WithRetry(retry.DefaultResMgmtOpts), resmgmt.WithOrdererEndpoint("orderer.example.com")); err != nil {
 			return fmt.Errorf("%s peers failed to JoinChannel: %v", org.OrgName, err)
 		}
 	}
-	fmt.Println(">> 加入通道成功")
+	fmt.Println(">> joined the channel successfully")
 	return nil
 }
 
@@ -102,7 +101,7 @@ func createChannel(signIDs []msp.SigningIdentity, info *SdkEnvInfo) error {
 		return fmt.Errorf("error should be nil for SaveChannel of orgchannel: %v", err)
 	}
 
-	fmt.Println(">>>> 使用每个org的管理员身份更新锚节点配置...")
+	fmt.Println(" >>>>Update anchor node configuration with each org's admin identity... ")
 	//do the same get ch client and create channel for each anchor peer as well (first for Org1MSP)
 	for i, org := range info.Orgs {
 		req = resmgmt.SaveChannelRequest{ChannelID: info.ChannelID,
@@ -113,7 +112,7 @@ func createChannel(signIDs []msp.SigningIdentity, info *SdkEnvInfo) error {
 			return fmt.Errorf("SaveChannel for anchor org %s error: %v", org.OrgName, err)
 		}
 	}
-	fmt.Println(">>>> 使用每个org的管理员身份更新锚节点配置完成")
+	fmt.Println(" >>>>Update anchor node configuration with each org's admin identity completed ")
 	//integration.WaitForOrdererConfigUpdate(t, configQueryClient, mc.channelID, false, lastConfigBlock)
 	return nil
 }
@@ -123,16 +122,16 @@ func CreateCCLifecycle(info *SdkEnvInfo, sequence int64, upgrade bool, sdk *fabs
 		return fmt.Errorf("the number of organization should not be zero.")
 	}
 	// Package cc
-	fmt.Println(">> 开始打包链码......")
+	fmt.Println(">> Start packaging chaincode...")
 	label, ccPkg, err := packageCC(info.ChaincodeID, info.ChaincodeVersion, info.ChaincodePath)
 	if err != nil {
 		return fmt.Errorf("pakcagecc error: %v", err)
 	}
 	packageID := lcpackager.ComputePackageID(label, ccPkg)
-	fmt.Println(">> 打包链码成功")
+	fmt.Println(">> packaged chaincode successfully")
 
 	// Install cc
-	fmt.Println(">> 开始安装链码......")
+	fmt.Println(">> Start installing chaincode...")
 	if err := installCC(label, ccPkg, info.Orgs); err != nil {
 		return fmt.Errorf("installCC error: %v", err)
 	}
@@ -146,44 +145,44 @@ func CreateCCLifecycle(info *SdkEnvInfo, sequence int64, upgrade bool, sdk *fabs
 	if err := queryInstalled(packageID, info.Orgs[0]); err != nil {
 		return fmt.Errorf("queryInstalled error: %v", err)
 	}
-	fmt.Println(">> 安装链码成功")
+	fmt.Println(">> chaincode installed successfully")
 
 	// Approve cc
-	fmt.Println(">> 组织认可智能合约定义......")
+	fmt.Println(">> organization approved smart contract definition...")
 	if err := approveCC(packageID, info.ChaincodeID, info.ChaincodeVersion, sequence, info.ChannelID, info.Orgs, info.OrdererEndpoint); err != nil {
 		return fmt.Errorf("approveCC error: %v", err)
 	}
 
 	// Query approve cc
-	if err:=queryApprovedCC(info.ChaincodeID, sequence, info.ChannelID, info.Orgs);err!=nil{
+	if err := queryApprovedCC(info.ChaincodeID, sequence, info.ChannelID, info.Orgs); err != nil {
 		return fmt.Errorf("queryApprovedCC error: %v", err)
 	}
-	fmt.Println(">> 组织认可智能合约定义完成")
+	fmt.Println(">> organization approved smart contract definition is complete")
 
 	// Check commit readiness
-	fmt.Println(">> 检查智能合约是否就绪......")
-	if err:=checkCCCommitReadiness(packageID, info.ChaincodeID, info.ChaincodeVersion, sequence, info.ChannelID, info.Orgs); err!=nil{
+	fmt.Println(">> Check if smart contract is ready...")
+	if err := checkCCCommitReadiness(packageID, info.ChaincodeID, info.ChaincodeVersion, sequence, info.ChannelID, info.Orgs); err != nil {
 		return fmt.Errorf("checkCCCommitReadiness error: %v", err)
 	}
-	fmt.Println(">> 智能合约已经就绪")
+	fmt.Println(">> smart contract is ready")
 
 	// Commit cc
-	fmt.Println(">> 提交智能合约定义......")
-	if err:=commitCC(info.ChaincodeID, info.ChaincodeVersion, sequence, info.ChannelID, info.Orgs, info.OrdererEndpoint);err!=nil{
+	fmt.Println(">> commit chaincode ......")
+	if err := commitCC(info.ChaincodeID, info.ChaincodeVersion, sequence, info.ChannelID, info.Orgs, info.OrdererEndpoint); err != nil {
 		return fmt.Errorf("commitCC error: %v", err)
 	}
 	// Query committed cc
-	if err:=queryCommittedCC(info.ChaincodeID, info.ChannelID, sequence, info.Orgs); err!=nil{
+	if err := queryCommittedCC(info.ChaincodeID, info.ChannelID, sequence, info.Orgs); err != nil {
 		return fmt.Errorf("queryCommittedCC error: %v", err)
 	}
-	fmt.Println(">> 智能合约定义提交完成")
+	fmt.Println(">> smart contract definition submitted")
 
 	// Init cc
-	fmt.Println(">> 调用智能合约初始化方法......")
-	if err:=initCC(info.ChaincodeID, upgrade, info.ChannelID, info.Orgs[0], sdk); err!=nil{
+	fmt.Println(">> call smart contract initialization method...")
+	if err := initCC(info.ChaincodeID, upgrade, info.ChannelID, info.Orgs[0], sdk); err != nil {
 		return fmt.Errorf("initCC error: %v", err)
 	}
-	fmt.Println(">> 完成智能合约初始化")
+	fmt.Println(">> complete smart contract initialization")
 	return nil
 }
 
@@ -287,17 +286,17 @@ func approveCC(packageID string, ccName, ccVersion string, sequence int64, chann
 		InitRequired:      true,
 	}
 
-	for _, org := range orgs{
+	for _, org := range orgs {
 		orgPeers, err := DiscoverLocalPeers(*org.OrgAdminClientContext, org.OrgPeerNum)
 		fmt.Printf(">>> chaincode approved by %s peers:\n", org.OrgName)
 		for _, p := range orgPeers {
 			fmt.Printf("	%s\n", p.URL())
 		}
 
-		if err!=nil{
+		if err != nil {
 			return fmt.Errorf("DiscoverLocalPeers error: %v", err)
 		}
-		if _, err := org.OrgResMgmt.LifecycleApproveCC(channelID, approveCCReq, resmgmt.WithTargets(orgPeers...), resmgmt.WithOrdererEndpoint(ordererEndpoint), resmgmt.WithRetry(retry.DefaultResMgmtOpts));err != nil {
+		if _, err := org.OrgResMgmt.LifecycleApproveCC(channelID, approveCCReq, resmgmt.WithTargets(orgPeers...), resmgmt.WithOrdererEndpoint(ordererEndpoint), resmgmt.WithRetry(retry.DefaultResMgmtOpts)); err != nil {
 			fmt.Errorf("LifecycleApproveCC error: %v", err)
 		}
 	}
@@ -310,9 +309,9 @@ func queryApprovedCC(ccName string, sequence int64, channelID string, orgs []*Or
 		Sequence: sequence,
 	}
 
-	for _, org := range orgs{
+	for _, org := range orgs {
 		orgPeers, err := DiscoverLocalPeers(*org.OrgAdminClientContext, org.OrgPeerNum)
-		if err!=nil{
+		if err != nil {
 			return fmt.Errorf("DiscoverLocalPeers error: %v", err)
 		}
 		// Query approve cc
@@ -329,7 +328,7 @@ func queryApprovedCC(ccName string, sequence int64, channelID string, orgs []*Or
 			if err != nil {
 				return fmt.Errorf("Org %s Peer %s NewInvoker error: %v", org.OrgName, p.URL(), err)
 			}
-			if resp==nil{
+			if resp == nil {
 				return fmt.Errorf("Org %s Peer %s Got nil invoker", org.OrgName, p.URL())
 			}
 		}
@@ -344,8 +343,8 @@ func checkCCCommitReadiness(packageID string, ccName, ccVersion string, sequence
 	}
 	ccPolicy := policydsl.SignedByNOutOfGivenRole(int32(len(mspIds)), mb.MSPRole_MEMBER, mspIds)
 	req := resmgmt.LifecycleCheckCCCommitReadinessRequest{
-		Name:              ccName,
-		Version:           ccVersion,
+		Name:    ccName,
+		Version: ccVersion,
 		//PackageID:         packageID,
 		EndorsementPlugin: "escc",
 		ValidationPlugin:  "vscc",
@@ -353,9 +352,9 @@ func checkCCCommitReadiness(packageID string, ccName, ccVersion string, sequence
 		Sequence:          sequence,
 		InitRequired:      true,
 	}
-	for _, org := range orgs{
+	for _, org := range orgs {
 		orgPeers, err := DiscoverLocalPeers(*org.OrgAdminClientContext, org.OrgPeerNum)
-		if err!=nil{
+		if err != nil {
 			fmt.Errorf("DiscoverLocalPeers error: %v", err)
 		}
 		for _, p := range orgPeers {
@@ -379,7 +378,7 @@ func checkCCCommitReadiness(packageID string, ccName, ccVersion string, sequence
 			if err != nil {
 				return fmt.Errorf("NewInvoker error: %v", err)
 			}
-			if resp==nil{
+			if resp == nil {
 				return fmt.Errorf("Got nill invoker response")
 			}
 		}
@@ -388,7 +387,7 @@ func checkCCCommitReadiness(packageID string, ccName, ccVersion string, sequence
 	return nil
 }
 
-func commitCC(ccName, ccVersion string, sequence int64, channelID string, orgs []*OrgInfo, ordererEndpoint string) error{
+func commitCC(ccName, ccVersion string, sequence int64, channelID string, orgs []*OrgInfo, ordererEndpoint string) error {
 	mspIDs := []string{}
 	for _, org := range orgs {
 		mspIDs = append(mspIDs, org.OrgMspId)
@@ -411,14 +410,14 @@ func commitCC(ccName, ccVersion string, sequence int64, channelID string, orgs [
 	return nil
 }
 
-func queryCommittedCC( ccName string, channelID string, sequence int64, orgs []*OrgInfo) error {
+func queryCommittedCC(ccName string, channelID string, sequence int64, orgs []*OrgInfo) error {
 	req := resmgmt.LifecycleQueryCommittedCCRequest{
 		Name: ccName,
 	}
 
 	for _, org := range orgs {
 		orgPeers, err := DiscoverLocalPeers(*org.OrgAdminClientContext, org.OrgPeerNum)
-		if err!=nil{
+		if err != nil {
 			return fmt.Errorf("DiscoverLocalPeers error: %v", err)
 		}
 		for _, p := range orgPeers {
@@ -442,9 +441,9 @@ func queryCommittedCC( ccName string, channelID string, sequence int64, orgs []*
 				},
 			)
 			if err != nil {
-				return  fmt.Errorf("NewInvoker error: %v", err)
+				return fmt.Errorf("NewInvoker error: %v", err)
 			}
-			if resp==nil{
+			if resp == nil {
 				return fmt.Errorf("Got nil invoker response")
 			}
 		}

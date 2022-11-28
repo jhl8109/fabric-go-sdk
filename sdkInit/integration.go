@@ -64,7 +64,7 @@ func regitserEvent(client *event.Client, chaincodeID string) (fabAPI.Registratio
 
 	reg, notifier, err := client.RegisterChaincodeEvent(chaincodeID, eventName)
 	if err != nil {
-		fmt.Println("注册链码事件失败: %s", err)
+		fmt.Println("registering chaincode event failed: %s", err)
 	}
 
 	return reg, notifier

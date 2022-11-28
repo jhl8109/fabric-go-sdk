@@ -22,18 +22,18 @@ type OrgInfo struct {
 }
 
 type SdkEnvInfo struct {
-	// 通道信息
+	// channel info
 	ChannelID     string // like "simplecc"
 	ChannelConfig string // like os.Getenv("GOPATH") + "/src/github.com/hyperledger/fabric-samples/test-network/channel-artifacts/testchannel.tx"
 
-	// 组织信息
+	// org info
 	Orgs []*OrgInfo
-	// 排序服务节点信息
+	// orderer info
 	OrdererAdminUser     string // like "Admin"
 	OrdererOrgName       string // like "OrdererOrg"
 	OrdererEndpoint      string
 	OrdererClientContext *contextAPI.ClientProvider
-	// 链码信息
+	// chaincode info
 	ChaincodeID      string
 	ChaincodeGoPath  string
 	ChaincodePath    string
