@@ -17,7 +17,7 @@ var App sdkInit.Application
 func main() {
 	// init orgs information
 	GOPATH := os.Getenv("GOPATH")
-	fmt.Println(GOPATH)
+
 	orgs := []*sdkInit.OrgInfo{
 		{
 			OrgAdminUser:  "Admin",
